@@ -1,0 +1,41 @@
+{
+  "name": "vitatrack",
+  "version": "1.0.0",
+  "description": "Daily habit, vitamin, and prescription tracker",
+  "main": "server/index.js",
+"scripts": {
+    "start": "node server/index.js",
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:server": "nodemon --watch server server/index.js",
+    "dev:client": "vite client --config client/vite.config.mjs",
+    "build": "vite build client --config client/vite.config.mjs",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
+    "cors": "^2.8.6",
+    "express": "^4.22.1",
+    "lucide-react": "^1.11.0",
+    "multer": "^2.1.1",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "sqlite3": "^6.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.4",
+    "@vitejs/plugin-react": "^5.2.0",
+    "autoprefixer": "^10.5.0",
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.0.1",
+    "postcss": "^8.5.10",
+    "postcss-cli": "^11.0.1",
+    "tailwindcss": "^4.2.4",
+    "vite": "^5.4.21"
+  }
+}

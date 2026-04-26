@@ -1,0 +1,5 @@
+{
+  "appId": "com.vitrack.app",
+  "appName": "vitatrack",
+  "webDir": "client/dist"
+}
