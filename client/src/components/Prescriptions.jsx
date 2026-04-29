@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { CheckSquare, Square, Plus, Upload, Trash2 } from 'lucide-react';
-import { getPrescriptionsByDate, savePrescription, deletePrescription, fileToBase64 } from '../db';
+import { CheckSquare, Square, Plus, Camera, Trash2 } from 'lucide-react';
+import { getPrescriptionsByDate, savePrescription, deletePrescription } from '../db';
+import { Camera as CapacitorCamera, CameraResultType } from '@capacitor/camera';
 
 const PRESET_TIMES = ['9:00 AM', '12:00 PM', '3:00 PM', '6:00 PM', '9:00 PM'];
 
@@ -9,42 +10,51 @@ export default function Prescriptions({ date }) {
   const [newRx, setNewRx] = useState({ name: '', time_slot: PRESET_TIMES[0] });
   const [imageFile, setImageFile] = useState(null);
 
+  const loadPrescriptions = async () => {
+    const data = await getPrescriptionsByDate(date);
+    setPrescriptions(data);
+  };
+
   useEffect(() => {
-    setPrescriptions(getPrescriptionsByDate(date));
+    loadPrescriptions();
   }, [date]);
 
-  const toggleRx = (id, completed) => {
-    setPrescriptions(prev => prev.map(p => p.id === id ? { ...p, completed } : p));
+  const takePhoto = async () => {
+    try {
+      const image = await CapacitorCamera.getPhoto({
+        quality: 90,
+        allowEditing: true,
+        resultType: CameraResultType.DataUrl
+      });
+      setImageFile(image.dataUrl);
+    } catch (err) {
+      console.error('Camera cancelled or failed', err);
+    }
+  };
+
+  const toggleRx = async (id, completed) => {
     const rx = prescriptions.find(p => p.id === id);
     if (rx) {
-      savePrescription({ ...rx, completed }, date);
+      await savePrescription({ ...rx, completed }, date);
+      loadPrescriptions();
     }
   };
 
   const addRx = async () => {
     if (!newRx.name.trim()) return;
     
-    let imagePath = null;
-    if (imageFile) {
-      try {
-        imagePath = await fileToBase64(imageFile);
-      } catch (err) {
-        console.error('Failed to read image:', err);
-      }
-    }
-
-    const newRxObj = { id: Date.now(), name: newRx.name, time_slot: newRx.time_slot, image_path: imagePath };
-    savePrescription(newRxObj); // Save to master list
-    setPrescriptions(getPrescriptionsByDate(date)); // Refresh list for today
+    const newRxObj = { id: Date.now(), name: newRx.name, time_slot: newRx.time_slot, image_path: imageFile };
+    await savePrescription(newRxObj);
+    await loadPrescriptions();
     
     setNewRx({ name: '', time_slot: PRESET_TIMES[0] });
     setImageFile(null);
   };
 
-  const removeRx = (id) => {
+  const removeRx = async (id) => {
     if (window.confirm('Remove this prescription entirely?')) {
-      deletePrescription(id);
-      setPrescriptions(getPrescriptionsByDate(date));
+      await deletePrescription(id);
+      loadPrescriptions();
     }
   };
 
@@ -102,10 +112,12 @@ export default function Prescriptions({ date }) {
             {PRESET_TIMES.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
 
-          <label className="flex items-center gap-1 cursor-pointer text-xs text-gray-500 hover:text-purple-600 border border-gray-300 dark:border-gray-600 p-2 rounded-lg transition-colors bg-white dark:bg-gray-700">
-            <Upload size={14} /> Attach
-            <input type="file" accept="image/*" onChange={e => setImageFile(e.target.files[0])} className="hidden" />
-          </label>
+          <button
+            onClick={takePhoto}
+            className={`flex items-center gap-1 cursor-pointer text-xs p-2 rounded-lg transition-colors border ${imageFile ? 'bg-purple-100 border-purple-500 text-purple-700' : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 hover:text-purple-600'}`}
+          >
+            <Camera size={14} /> {imageFile ? 'Captured' : 'Photo'}
+          </button>
 
           <button onClick={addRx} className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg flex items-center gap-1 transition-colors font-medium text-sm">
             <Plus size={18} /> Add

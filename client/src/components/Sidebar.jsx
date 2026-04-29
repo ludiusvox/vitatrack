@@ -1,16 +1,25 @@
 import { ChevronLeft, ChevronRight, Calendar, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 
 export default function Sidebar({ selectedDate, setSelectedDate, isCollapsed, setIsCollapsed }) {
+  const formatDate = (date) => {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(date);
+  };
+
   const handlePrev = () => {
-    const d = new Date(selectedDate);
+    const d = new Date(selectedDate + 'T12:00:00'); // Use noon to avoid DST edge cases
     d.setDate(d.getDate() - 1);
-    setSelectedDate(d.toISOString().split('T')[0]);
+    setSelectedDate(formatDate(d));
   };
 
   const handleNext = () => {
-    const d = new Date(selectedDate);
+    const d = new Date(selectedDate + 'T12:00:00');
     d.setDate(d.getDate() + 1);
-    setSelectedDate(d.toISOString().split('T')[0]);
+    setSelectedDate(formatDate(d));
   };
 
   return (

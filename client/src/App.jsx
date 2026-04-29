@@ -6,9 +6,40 @@ import Prescriptions from './components/Prescriptions';
 import { Moon, Sun, PanelLeftOpen, PanelLeftClose } from 'lucide-react';
 
 export default function App() {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const getTodayStr = () => {
+    // Return YYYY-MM-DD in America/New_York (EST/EDT)
+    const now = new Date();
+    const estDate = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(now);
+    return estDate;
+  };
+
+  const [selectedDate, setSelectedDate] = useState(getTodayStr());
+  const [today, setToday] = useState(getTodayStr());
   const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem('theme') === 'dark');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  // Effect to handle midnight rollover
+  useEffect(() => {
+    const checkMidnight = () => {
+      const currentToday = getTodayStr();
+      if (today !== currentToday) {
+        // If the user was on the "previous" today, move them to the "new" today
+        if (selectedDate === today) {
+          setSelectedDate(currentToday);
+        }
+        setToday(currentToday);
+      }
+    };
+
+    // Check every minute
+    const interval = setInterval(checkMidnight, 60000);
+    return () => clearInterval(interval);
+  }, [selectedDate, today]);
 
   useEffect(() => {
     if (isDarkMode) {

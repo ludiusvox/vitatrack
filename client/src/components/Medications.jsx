@@ -1,48 +1,58 @@
 import { useState, useEffect } from 'react';
-import { CheckSquare, Square, Plus, Upload, Trash2 } from 'lucide-react';
-import { getMedsByDate, saveMed, deleteMed, fileToBase64 } from '../db';
+import { CheckSquare, Square, Plus, Camera, Trash2 } from 'lucide-react';
+import { getMedsByDate, saveMed, deleteMed } from '../db';
+import { Camera as CapacitorCamera, CameraResultType } from '@capacitor/camera';
 
 export default function Medications({ date }) {
   const [meds, setMeds] = useState([]);
   const [newMed, setNewMed] = useState({ name: '', type: 'multivitamin' });
   const [imageFile, setImageFile] = useState(null);
 
+  const loadMeds = async () => {
+    const data = await getMedsByDate(date);
+    setMeds(data);
+  };
+
   useEffect(() => {
-    setMeds(getMedsByDate(date));
+    loadMeds();
   }, [date]);
 
-  const toggleMed = (id, completed) => {
-    setMeds(prev => prev.map(m => m.id === id ? { ...m, completed } : m));
+  const takePhoto = async () => {
+    try {
+      const image = await CapacitorCamera.getPhoto({
+        quality: 90,
+        allowEditing: true,
+        resultType: CameraResultType.DataUrl
+      });
+      setImageFile(image.dataUrl);
+    } catch (err) {
+      console.error('Camera cancelled or failed', err);
+    }
+  };
+
+  const toggleMed = async (id, completed) => {
     const med = meds.find(m => m.id === id);
     if (med) {
-      saveMed({ ...med, completed }, date);
+      await saveMed({ ...med, completed }, date);
+      loadMeds();
     }
   };
 
   const addMed = async () => {
     if (!newMed.name.trim()) return;
     
-    let imagePath = null;
-    if (imageFile) {
-      try {
-        imagePath = await fileToBase64(imageFile);
-      } catch (err) {
-        console.error('Failed to read image:', err);
-      }
-    }
-
-    const newMedObj = { id: Date.now(), name: newMed.name, type: newMed.type, image_path: imagePath };
-    saveMed(newMedObj);
-    setMeds(getMedsByDate(date));
+    const newMedObj = { id: Date.now(), name: newMed.name, type: newMed.type, image_path: imageFile };
+    await saveMed(newMedObj);
+    await loadMeds();
 
     setNewMed({ name: '', type: 'multivitamin' });
     setImageFile(null);
   };
 
-  const removeMed = (id) => {
+  const removeMed = async (id) => {
     if (window.confirm('Remove this medication?')) {
-      deleteMed(id);
-      setMeds(getMedsByDate(date));
+      await deleteMed(id);
+      loadMeds();
     }
   };
 
@@ -101,10 +111,12 @@ export default function Medications({ date }) {
             <option value="otc">OTC Medication</option>
           </select>
 
-          <label className="flex items-center gap-1 cursor-pointer text-xs text-gray-500 hover:text-green-600 border border-gray-300 dark:border-gray-600 p-2 rounded-lg transition-colors bg-white dark:bg-gray-700">
-            <Upload size={14} /> Attach
-            <input type="file" accept="image/*" onChange={e => setImageFile(e.target.files[0])} className="hidden" />
-          </label>
+          <button
+            onClick={takePhoto}
+            className={`flex items-center gap-1 cursor-pointer text-xs p-2 rounded-lg transition-colors border ${imageFile ? 'bg-green-100 border-green-500 text-green-700' : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 hover:text-green-600'}`}
+          >
+            <Camera size={14} /> {imageFile ? 'Captured' : 'Photo'}
+          </button>
 
           <button onClick={addMed} className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg flex items-center gap-1 transition-colors font-medium text-sm">
             <Plus size={18} /> Add
