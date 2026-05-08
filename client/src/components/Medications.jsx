@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { CheckSquare, Square, Plus, Camera, Trash2 } from 'lucide-react';
 import { getMedsByDate, saveMed, deleteMed } from '../db';
-import { Camera as CapacitorCamera, CameraResultType } from '@capacitor/camera';
+
+// Safe fallback for Capacitor to prevent web dev crashes
+const CapacitorCamera = typeof window !== 'undefined' && window.Capacitor?.plugins?.Camera ? window.Capacitor.plugins.Camera : null;
+const CameraResultType = { DataUrl: 0 }; // Fallback constant
 
 export default function Medications({ date }) {
   const [meds, setMeds] = useState([]);
@@ -14,11 +17,14 @@ export default function Medications({ date }) {
   };
 
   useEffect(() => {
-    loadMeds();
+    let mounted = true;
+    if (mounted) loadMeds();
+    return () => { mounted = false; };
   }, [date]);
 
   const takePhoto = async () => {
     try {
+      if (!CapacitorCamera) return; // Skip on web dev without capacitor
       const image = await CapacitorCamera.getPhoto({
         quality: 90,
         allowEditing: true,
@@ -42,7 +48,7 @@ export default function Medications({ date }) {
     if (!newMed.name.trim()) return;
     
     const newMedObj = { id: Date.now(), name: newMed.name, type: newMed.type, image_path: imageFile };
-    await saveMed(newMedObj);
+    await saveMed(newMedObj, date); // FIXED: Added missing date argument
     await loadMeds();
 
     setNewMed({ name: '', type: 'multivitamin' });

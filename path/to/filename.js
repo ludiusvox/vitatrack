@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import HygieneChecklist from './components/HygieneChecklist';
 import Medications from './components/Medications';
@@ -23,23 +23,31 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem('theme') === 'dark');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
+  // Refs to prevent stale closures and interval reset loops
+  const todayRef = useRef(today);
+  const selectedDateRef = useRef(selectedDate);
+
+  useEffect(() => {
+    todayRef.current = today;
+    selectedDateRef.current = selectedDate;
+  }, [today, selectedDate]);
+
   // Effect to handle midnight rollover
   useEffect(() => {
     const checkMidnight = () => {
       const currentToday = getTodayStr();
-      if (today !== currentToday) {
-        // If the user was on the "previous" today, move them to the "new" today
-        if (selectedDate === today) {
+      if (todayRef.current !== currentToday) {
+        // If the user was viewing yesterday's date when midnight passed, auto-advance them to today
+        if (selectedDateRef.current === todayRef.current) {
           setSelectedDate(currentToday);
         }
         setToday(currentToday);
       }
     };
 
-    // Check every minute
     const interval = setInterval(checkMidnight, 60000);
     return () => clearInterval(interval);
-  }, [selectedDate, today]);
+  }, []); // Run once on mount to avoid resetting the timer on every state change
 
   useEffect(() => {
     if (isDarkMode) {
@@ -84,12 +92,7 @@ export default function App() {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
-              Hygiene Checklist — {selectedDate}
-            </h3>
-            <HygieneChecklist date={selectedDate} />
-          </div>
+          <HygieneChecklist date={selectedDate} />
           <Medications date={selectedDate} />
         </div>
 

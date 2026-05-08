@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { CheckSquare, Square, Plus, Camera, Trash2 } from 'lucide-react';
 import { getPrescriptionsByDate, savePrescription, deletePrescription } from '../db';
-import { Camera as CapacitorCamera, CameraResultType } from '@capacitor/camera';
+
+// Safe fallback for Capacitor to prevent web dev crashes
+const CapacitorCamera = typeof window !== 'undefined' && window.Capacitor?.plugins?.Camera ? window.Capacitor.plugins.Camera : null;
+const CameraResultType = { DataUrl: 0 }; // Fallback constant
 
 const PRESET_TIMES = ['9:00 AM', '12:00 PM', '3:00 PM', '6:00 PM', '9:00 PM'];
 
@@ -16,11 +19,14 @@ export default function Prescriptions({ date }) {
   };
 
   useEffect(() => {
-    loadPrescriptions();
+    let mounted = true;
+    if (mounted) loadPrescriptions();
+    return () => { mounted = false; };
   }, [date]);
 
   const takePhoto = async () => {
     try {
+      if (!CapacitorCamera) return; // Skip on web dev without capacitor
       const image = await CapacitorCamera.getPhoto({
         quality: 90,
         allowEditing: true,
@@ -44,7 +50,7 @@ export default function Prescriptions({ date }) {
     if (!newRx.name.trim()) return;
     
     const newRxObj = { id: Date.now(), name: newRx.name, time_slot: newRx.time_slot, image_path: imageFile };
-    await savePrescription(newRxObj);
+    await savePrescription(newRxObj, date); // FIXED: Added missing date argument
     await loadPrescriptions();
     
     setNewRx({ name: '', time_slot: PRESET_TIMES[0] });

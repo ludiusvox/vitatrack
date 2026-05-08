@@ -12,7 +12,9 @@ export default function HygieneChecklist({ date }) {
   };
 
   useEffect(() => {
-    loadTasks();
+    let mounted = true;
+    if (mounted) loadTasks();
+    return () => { mounted = false; };
   }, [date]);
 
   const toggleTask = async (taskName, completed) => {
