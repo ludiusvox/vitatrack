@@ -1,6 +1,27 @@
+import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 
+const COMMON_TIMEZONES = [
+  'UTC',
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'Europe/London',
+  'Europe/Berlin',
+  'Asia/Tokyo',
+  'Australia/Sydney'
+];
+
 export default function Sidebar({ selectedDate, setSelectedDate, isCollapsed, setIsCollapsed }) {
+  const [timezone, setTimezone] = useState(() => {
+    return localStorage.getItem('vitatrack-timezone') || 'America/New_York';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('vitatrack-timezone', timezone);
+  }, [timezone]);
+
   // Updated to safely handle both strings and Date objects
   const formatDate = (input) => {
     let d;
@@ -15,6 +36,12 @@ export default function Sidebar({ selectedDate, setSelectedDate, isCollapsed, se
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  };
+
+  // Helper to format dates for display with the selected timezone
+  const formatDateWithTimezone = (dateStr, options) => {
+    const date = new Date(dateStr + 'T12:00:00');
+    return date.toLocaleDateString('en-US', { ...options, timeZone: timezone });
   };
 
   const handlePrev = () => {
@@ -92,7 +119,7 @@ export default function Sidebar({ selectedDate, setSelectedDate, isCollapsed, se
               <ChevronLeft size={20} />
             </button>
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300 text-center flex-1 px-1">
-              {new Date(selectedDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+              {formatDateWithTimezone(selectedDate, { weekday: 'short', month: 'short', day: 'numeric' })}
             </span>
             <button
               onClick={handleNext}
@@ -117,10 +144,27 @@ export default function Sidebar({ selectedDate, setSelectedDate, isCollapsed, se
                       : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
                   }`}
                 >
-                  {new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' })}
+                  {formatDateWithTimezone(date, { weekday: 'short', month: 'numeric', day: 'numeric' })}
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Timezone Selector */}
+          <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-700">
+            <label htmlFor="timezone-select" className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+              App Timezone
+            </label>
+            <select
+              id="timezone-select"
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+              className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+            >
+              {COMMON_TIMEZONES.map((tz) => (
+                <option key={tz} value={tz}>{tz}</option>
+              ))}
+            </select>
           </div>
         </>
       )}

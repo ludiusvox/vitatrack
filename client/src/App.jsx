@@ -6,16 +6,16 @@ import Prescriptions from './components/Prescriptions';
 import { Moon, Sun, PanelLeftOpen, PanelLeftClose } from 'lucide-react';
 
 export default function App() {
+  // Updated to dynamically read timezone from localStorage
   const getTodayStr = () => {
-    // Return YYYY-MM-DD in America/New_York (EST/EDT)
+    const tz = localStorage.getItem('vitatrack-timezone') || 'America/New_York';
     const now = new Date();
-    const estDate = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/New_York',
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit'
     }).format(now);
-    return estDate;
   };
 
   const [selectedDate, setSelectedDate] = useState(getTodayStr());
@@ -42,12 +42,21 @@ export default function App() {
   }, [selectedDate, today]);
 
   useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    
     if (isDarkMode) {
-      document.documentElement.classList.add('dark');
+      html.classList.add('dark');
       localStorage.setItem('theme', 'dark');
+      // Apply dark background to root elements to prevent scrolling issues
+      body.style.backgroundColor = '#111827'; // gray-900
+      html.style.backgroundColor = '#111827';
     } else {
-      document.documentElement.classList.remove('dark');
+      html.classList.remove('dark');
       localStorage.setItem('theme', 'light');
+      // Apply light background to root elements
+      body.style.backgroundColor = '#f9fafb'; // gray-50
+      html.style.backgroundColor = '#f9fafb';
     }
   }, [isDarkMode]);
 
