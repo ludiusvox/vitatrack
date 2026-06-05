@@ -1,6 +1,6 @@
 {
   "name": "vitatrack",
-  "version": "1.0.0",
+  "version": "0.0.5",
   "description": "Daily habit, vitamin, and prescription tracker",
   "main": "server/index.js",
   "scripts": {

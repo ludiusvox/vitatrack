@@ -8,7 +8,15 @@ import { Moon, Sun, PanelLeftOpen, PanelLeftClose } from 'lucide-react';
 export default function App() {
   // Updated to dynamically read timezone from localStorage
   const getTodayStr = () => {
-    const tz = localStorage.getItem('vitatrack-timezone') || 'America/New_York';
+    let tz = localStorage.getItem('vitatrack-timezone') || 'America/New_York';
+    // Safety check for timezone validity
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone: tz }).format(new Date());
+    } catch (e) {
+      console.error("Invalid timezone, falling back to America/New_York");
+      tz = 'America/New_York';
+    }
+
     const now = new Date();
     return new Intl.DateTimeFormat('en-CA', {
       timeZone: tz,
@@ -44,7 +52,7 @@ export default function App() {
   useEffect(() => {
     const html = document.documentElement;
     const body = document.body;
-    
+
     if (isDarkMode) {
       html.classList.add('dark');
       localStorage.setItem('theme', 'dark');

@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react';
-import { CheckSquare, Square, Plus, Camera, Trash2 } from 'lucide-react';
+import { CheckSquare, Square, Plus, Camera as CameraIcon, Trash2 } from 'lucide-react';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { getMedsByDate, saveMed, deleteMed } from '../db';
-
-// Safe fallback for Capacitor to prevent web dev crashes
-const CapacitorCamera = typeof window !== 'undefined' && window.Capacitor?.plugins?.Camera ? window.Capacitor.plugins.Camera : null;
-const CameraResultType = { DataUrl: 0 }; // Fallback constant
 
 export default function Medications({ date }) {
   const [meds, setMeds] = useState([]);
@@ -24,12 +21,13 @@ export default function Medications({ date }) {
 
   const takePhoto = async () => {
     try {
-      if (!CapacitorCamera) return; // Skip on web dev without capacitor
-      const image = await CapacitorCamera.getPhoto({
+      const image = await Camera.getPhoto({
         quality: 90,
-        allowEditing: true,
-        resultType: CameraResultType.DataUrl
+        allowEditing: false, // Fix for "greyed out" bug on modern Android
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Prompt
       });
+
       setImageFile(image.dataUrl);
     } catch (err) {
       console.error('Camera cancelled or failed', err);
@@ -121,7 +119,7 @@ export default function Medications({ date }) {
             onClick={takePhoto}
             className={`flex items-center gap-1 cursor-pointer text-xs p-2 rounded-lg transition-colors border ${imageFile ? 'bg-green-100 border-green-500 text-green-700' : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 hover:text-green-600'}`}
           >
-            <Camera size={14} /> {imageFile ? 'Captured' : 'Photo'}
+            <CameraIcon size={14} /> {imageFile ? 'Captured' : 'Photo'}
           </button>
 
           <button onClick={addMed} className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg flex items-center gap-1 transition-colors font-medium text-sm">
