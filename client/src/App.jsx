@@ -3,13 +3,12 @@ import Sidebar from './components/Sidebar';
 import HygieneChecklist from './components/HygieneChecklist';
 import Medications from './components/Medications';
 import Prescriptions from './components/Prescriptions';
-import { Moon, Sun, PanelLeftOpen, PanelLeftClose } from 'lucide-react';
+import GamificationStats from './components/GamificationStats';
+import { Moon, Sun, PanelLeftOpen, PanelLeftClose, LayoutDashboard, BarChart3 } from 'lucide-react';
 
 export default function App() {
-  // Updated to dynamically read timezone from localStorage
   const getTodayStr = () => {
     let tz = localStorage.getItem('vitatrack-timezone') || 'America/New_York';
-    // Safety check for timezone validity
     try {
       new Intl.DateTimeFormat('en-US', { timeZone: tz }).format(new Date());
     } catch (e) {
@@ -30,13 +29,12 @@ export default function App() {
   const [today, setToday] = useState(getTodayStr());
   const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem('theme') === 'dark');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [activeView, setActiveView] = useState('tracker');
 
-  // Effect to handle midnight rollover
   useEffect(() => {
     const checkMidnight = () => {
       const currentToday = getTodayStr();
       if (today !== currentToday) {
-        // If the user was on the "previous" today, move them to the "new" today
         if (selectedDate === today) {
           setSelectedDate(currentToday);
         }
@@ -44,7 +42,6 @@ export default function App() {
       }
     };
 
-    // Check every minute
     const interval = setInterval(checkMidnight, 60000);
     return () => clearInterval(interval);
   }, [selectedDate, today]);
@@ -56,14 +53,12 @@ export default function App() {
     if (isDarkMode) {
       html.classList.add('dark');
       localStorage.setItem('theme', 'dark');
-      // Apply dark background to root elements to prevent scrolling issues
-      body.style.backgroundColor = '#111827'; // gray-900
+      body.style.backgroundColor = '#111827';
       html.style.backgroundColor = '#111827';
     } else {
       html.classList.remove('dark');
       localStorage.setItem('theme', 'light');
-      // Apply light background to root elements
-      body.style.backgroundColor = '#f9fafb'; // gray-50
+      body.style.backgroundColor = '#f9fafb';
       html.style.backgroundColor = '#f9fafb';
     }
   }, [isDarkMode]);
@@ -92,25 +87,57 @@ export default function App() {
             <p className="text-gray-500 dark:text-gray-400 mt-1">Track hygiene, medications, and prescriptions.</p>
           </div>
 
-          <button
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className="p-3 bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all text-gray-600 dark:text-gray-300"
-          >
-            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
+          {/* Right-aligned Tabs & Dark Mode Toggle */}
+          <div className="flex items-center gap-3">
+            <div className="bg-white dark:bg-gray-800 p-1 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex">
+              <button
+                onClick={() => setActiveView('tracker')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                  activeView === 'tracker' 
+                    ? 'bg-indigo-500 text-white shadow-md' 
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                <LayoutDashboard size={18} /> Tracker
+              </button>
+              <button
+                onClick={() => setActiveView('stats')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                  activeView === 'stats' 
+                    ? 'bg-indigo-500 text-white shadow-md' 
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                <BarChart3 size={18} /> Stats
+              </button>
+            </div>
+
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className="p-3 bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all text-gray-600 dark:text-gray-300"
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+          </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
-              Hygiene Checklist — {selectedDate}
-            </h3>
-            <HygieneChecklist date={selectedDate} />
-          </div>
-          <Medications date={selectedDate} />
-        </div>
+        {activeView === 'tracker' ? (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                  Hygiene Checklist — {selectedDate}
+                </h3>
+                <HygieneChecklist date={selectedDate} />
+              </div>
+              <Medications date={selectedDate} />
+            </div>
 
-        <Prescriptions date={selectedDate} />
+            <Prescriptions date={selectedDate} />
+          </>
+        ) : (
+          <GamificationStats />
+        )}
       </main>
     </div>
   );
