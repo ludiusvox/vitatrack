@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getPrescriptionsByDate, savePrescription, deletePrescription } from '../db';
 import { Plus, Trash2, Calendar, Clock, CheckCircle, Circle, Camera as CameraIcon } from 'lucide-react';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 
 const FREQUENCIES = ['Daily', 'Weekly', 'Monthly', 'Custom'];
 
@@ -25,6 +26,20 @@ export default function Prescriptions({ date }) {
     }
   };
 
+  const takePhoto = async () => {
+    try {
+      const image = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Prompt
+      });
+      setPhotoFile(image.dataUrl);
+    } catch (err) {
+      console.error('Camera cancelled or failed', err);
+    }
+  };
+
   const toggleCompletion = async (rx) => {
     const updatedRx = { 
       ...rx, 
@@ -37,7 +52,7 @@ export default function Prescriptions({ date }) {
     // Calculate next due date for scheduling purposes
     let nextDate = updatedRx.nextDate;
     if (!updatedRx.completedToday && updatedRx.frequency !== 'Custom') {
-      const d = new Date(updatedRx.nextDate);
+      const d = new Date(updatedRx.nextDate + 'T12:00:00');
       if (updatedRx.frequency === 'Daily') d.setDate(d.getDate() + 1);
       else if (updatedRx.frequency === 'Weekly') d.setDate(d.getDate() + 7);
       else if (updatedRx.frequency === 'Monthly') d.setMonth(d.getMonth() + 1);
@@ -49,7 +64,7 @@ export default function Prescriptions({ date }) {
     loadPrescriptions();
   };
 
-  const addPrescription = () => {
+  const addPrescription = async () => {
     if (!newRx.name.trim()) return;
     const rx = { 
       id: Date.now().toString(), 
@@ -60,8 +75,8 @@ export default function Prescriptions({ date }) {
       photo: photoFile,
       completedDates: []
     };
-    savePrescription(rx);
-    setPrescriptions([...prescriptions, rx]);
+    await savePrescription(rx);
+    await loadPrescriptions();
     setNewRx({ name: '', frequency: 'Daily', nextDate: date, reminderEnabled: true });
     setPhotoFile(null);
   };
@@ -72,96 +87,114 @@ export default function Prescriptions({ date }) {
   };
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Prescriptions & Reminders</h3>
+    <div className="space-y-4 max-w-4xl mx-auto">
+      <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-2 flex items-center gap-2">
+        <span className="w-2 h-8 bg-blue-500 rounded-full"></span>
+        Prescriptions & Reminders
+      </h3>
       
       {/* Add New Prescription */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-3">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
         <input
           type="text"
           value={newRx.name}
           onChange={(e) => setNewRx({ ...newRx, name: e.target.value })}
-          placeholder="Medication Name"
-          className="w-full bg-transparent border-b border-gray-200 dark:border-gray-700 focus:border-blue-500 outline-none py-1 text-gray-800 dark:text-gray-200"
+          placeholder="Medication or Reminder Name..."
+          className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-gray-800 dark:text-gray-200"
         />
         
-        <div className="flex gap-3 flex-wrap">
-          <select 
-            value={newRx.frequency}
-            onChange={(e) => setNewRx({ ...newRx, frequency: e.target.value })}
-            className="bg-transparent border-b border-gray-200 dark:border-gray-700 focus:border-blue-500 outline-none py-1 text-sm text-gray-600 dark:text-gray-300"
-          >
-            {FREQUENCIES.map(f => <option key={f} value={f}>{f}</option>)}
-          </select>
+        <div className="flex gap-4 flex-wrap items-center">
+          <div className="flex flex-col gap-1 flex-1 min-w-[150px]">
+            <label className="text-xs font-bold text-gray-400 uppercase ml-1">Frequency</label>
+            <select
+              value={newRx.frequency}
+              onChange={(e) => setNewRx({ ...newRx, frequency: e.target.value })}
+              className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-700 dark:text-gray-300 outline-none focus:border-blue-500"
+            >
+              {FREQUENCIES.map(f => <option key={f} value={f}>{f}</option>)}
+            </select>
+          </div>
 
-          <input 
-            type="date" 
-            value={newRx.nextDate}
-            onChange={(e) => setNewRx({ ...newRx, nextDate: e.target.value })}
-            className="bg-transparent border-b border-gray-200 dark:border-gray-700 focus:border-blue-500 outline-none py-1 text-sm text-gray-600 dark:text-gray-300"
-          />
-
-          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+          <div className="flex flex-col gap-1 flex-1 min-w-[150px]">
+            <label className="text-xs font-bold text-gray-400 uppercase ml-1">Next Due Date</label>
             <input 
-              type="checkbox" 
-              checked={newRx.reminderEnabled}
-              onChange={(e) => setNewRx({ ...newRx, reminderEnabled: e.target.checked })}
-              className="rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+              type="date"
+              value={newRx.nextDate}
+              onChange={(e) => setNewRx({ ...newRx, nextDate: e.target.value })}
+              className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm text-gray-700 dark:text-gray-300 outline-none focus:border-blue-500"
             />
-            Remind Me
-          </label>
+          </div>
+
+          <div className="flex items-center gap-3 pt-5">
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400 cursor-pointer hover:text-blue-500 transition-colors">
+              <input
+                type="checkbox"
+                checked={newRx.reminderEnabled}
+                onChange={(e) => setNewRx({ ...newRx, reminderEnabled: e.target.checked })}
+                className="w-5 h-5 rounded border-gray-300 text-blue-500 focus:ring-blue-500 bg-gray-50 dark:bg-gray-900"
+              />
+              Remind Me
+            </label>
+
+            <button
+              onClick={takePhoto}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all border ${photoFile ? 'bg-green-100 border-green-500 text-green-700' : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-500 hover:text-blue-500'}`}
+            >
+              <CameraIcon size={20} />
+              <span className="text-xs font-bold uppercase">{photoFile ? 'Photo Added' : 'Add Photo'}</span>
+            </button>
+          </div>
 
           <button 
-            onClick={() => {
-              const input = document.createElement('input');
-              input.type = 'file';
-              input.accept = 'image/*';
-              input.onchange = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onloadend = () => setPhotoFile(reader.result);
-                  reader.readAsDataURL(file);
-                }
-              };
-              input.click();
-            }} 
-            className="ml-auto text-blue-500 hover:text-blue-600 flex items-center gap-1"
+            onClick={addPrescription}
+            className="ml-auto bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl flex items-center gap-2 transition-all font-bold shadow-lg shadow-blue-500/20 active:scale-95"
           >
-            <CameraIcon size={24} /> {photoFile ? 'Photo Added' : 'Add Photo'}
+            <Plus size={20} /> Add Item
           </button>
         </div>
       </div>
 
       {/* List */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-3">
-        {prescriptions.map(rx => (
-          <div key={rx.id} className="flex items-center gap-3 group p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
-            <button onClick={() => toggleCompletion(rx)} className="text-blue-500 hover:text-blue-600 transition-colors flex-shrink-0">
-              {rx.completedToday ? <CheckCircle size={24} /> : <Circle size={24} />}
-            </button>
-            
-            <div className="flex-1 min-w-0">
-              <p className={`font-medium truncate ${rx.completedToday ? 'line-through text-gray-400' : 'text-gray-800 dark:text-gray-200'}`}>
-                {rx.name}
-              </p>
-              <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-1">
-                <span className="flex items-center gap-1"><Calendar size={12} /> {rx.frequency}</span>
-                <span className="flex items-center gap-1"><Clock size={12} /> Next: {rx.nextDate}</span>
-                {rx.reminderEnabled && <span className="text-blue-500 flex items-center gap-1">🔔</span>}
-              </div>
-            </div>
-
-            {rx.photo && (
-              <img src={rx.photo} alt={rx.name} className="w-8 h-8 object-cover rounded border border-gray-200 dark:border-gray-600 shadow-sm flex-shrink-0" />
-            )}
-
-            <button onClick={() => removePrescription(rx.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-opacity flex-shrink-0">
-              <Trash2 size={18} />
-            </button>
+      <div className="grid grid-cols-1 gap-4">
+        {prescriptions.length === 0 ? (
+          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700">
+            <p className="text-gray-400 italic">No prescriptions or reminders set yet.</p>
           </div>
-        ))}
+        ) : (
+          prescriptions.map(rx => (
+            <div key={rx.id} className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4 group hover:shadow-md transition-all">
+              <button onClick={() => toggleCompletion(rx)} className="text-blue-500 hover:text-blue-600 transition-colors flex-shrink-0">
+                {rx.completedToday ? <CheckCircle size={32} className="text-green-500" /> : <Circle size={32} className="text-gray-300 dark:text-gray-600" />}
+              </button>
+
+              <div className="flex-1 min-w-0">
+                <p className={`text-lg font-bold truncate ${rx.completedToday ? 'line-through text-gray-400' : 'text-gray-800 dark:text-white'}`}>
+                  {rx.name}
+                </p>
+                <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  <span className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-900 px-2 py-1 rounded-md"><Calendar size={14} /> {rx.frequency}</span>
+                  <span className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-900 px-2 py-1 rounded-md"><Clock size={14} /> Next: {rx.nextDate}</span>
+                  {rx.reminderEnabled && <span className="text-blue-500 font-bold flex items-center gap-1">🔔 Active</span>}
+                </div>
+              </div>
+
+              {rx.photo && (
+                <div className="relative group/photo">
+                  <img src={rx.photo} alt={rx.name} className="w-12 h-12 object-cover rounded-xl border-2 border-white dark:border-gray-700 shadow-sm flex-shrink-0" />
+                  <div className="absolute inset-0 bg-black/40 rounded-xl opacity-0 group-hover/photo:opacity-100 transition-opacity flex items-center justify-center">
+                     <CameraIcon size={16} className="text-white" />
+                  </div>
+                </div>
+              )}
+
+              <button onClick={() => removePrescription(rx.id)} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 flex-shrink-0">
+                <Trash2 size={20} />
+              </button>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
 }
+
