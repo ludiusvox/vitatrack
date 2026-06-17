@@ -166,14 +166,22 @@ export const deletePrescription = async (id) => {
   }
 };
 
-// Bedroom Tasks
+// Bedroom Tasks (Recurring Daily Habits)
 const TIME_SLOTS = ['9:00 AM', '12:00 PM', '3:00 PM', '6:00 PM', '9:00 PM'];
 
 export const getBedroomTasksByDate = async (date) => {
   const db = await getDB();
+  const logs = (db.logs || []).filter(l => l.date === date && l.type === 'bedroom');
+
   return TIME_SLOTS.map(slot => ({
     timeSlot: slot,
-    items: (db.bedroom || []).filter(t => t.date === date && t.timeSlot === slot).map(t => ({ id: String(t.id), text: t.name || '', completed: !!t.completed }))
+    items: (db.bedroom || [])
+      .filter(t => t.timeSlot === slot)
+      .map(t => ({
+        id: String(t.id),
+        text: t.name || '',
+        completed: logs.find(l => String(l.itemId) === String(t.id))?.completed || false
+      }))
   }));
 };
 
@@ -185,12 +193,17 @@ export const saveBedroomTask = async (task) => {
     if (task.id) {
       const idx = db.bedroom.findIndex(t => String(t.id) === String(task.id));
       if (idx >= 0) {
-        db.bedroom[idx] = { ...db.bedroom[idx], name: task.text, completed: task.completed };
-      } else {
-        db.bedroom.push({ id: String(Date.now()), date: task.date, timeSlot: task.timeSlot, name: task.text || '', completed: false });
+        // If we are just toggling completion for a specific date
+        if (task.date && task.completed !== undefined) {
+           await saveLog(task.date, 'bedroom', task.id, task.completed);
+           return;
+        }
+        // Otherwise update the habit definition
+        db.bedroom[idx] = { ...db.bedroom[idx], name: task.text || db.bedroom[idx].name };
       }
     } else {
-      db.bedroom.push({ id: String(Date.now()), date: task.date, timeSlot: task.timeSlot, name: task.text || '', completed: false });
+      // Create new recurring habit definition
+      db.bedroom.push({ id: String(Date.now()), timeSlot: task.timeSlot, name: task.text || '', completed: false });
     }
     await saveDB(db);
   } catch (e) {

@@ -63,9 +63,10 @@ export default function GamificationStats() {
         }
 
         // Calculate progress for categories safely with type coercion guards
-        const bedroomTasks = Array.isArray(db.bedroom) ? db.bedroom : [];
-        const bedroomProgress = bedroomTasks.length > 0 
-          ? Math.round((bedroomTasks.filter(t => t.completed).length / bedroomTasks.length) * 100) 
+        const bedroomTemplates = Array.isArray(db.bedroom) ? db.bedroom : [];
+        const todayBedroomLogs = (db.logs || []).filter(l => l.date === todayStr && l.type === 'bedroom');
+        const bedroomProgress = bedroomTemplates.length > 0
+          ? Math.round((todayBedroomLogs.filter(l => l.completed).length / bedroomTemplates.length) * 100)
           : 0;
 
         const laundryItems = Array.isArray(db.laundryData?.items) ? db.laundryData.items : [];
