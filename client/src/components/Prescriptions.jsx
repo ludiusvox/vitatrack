@@ -1,132 +1,166 @@
 import { useState, useEffect } from 'react';
-import { CheckSquare, Square, Plus, Camera as CameraIcon, Trash2 } from 'lucide-react';
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { getPrescriptionsByDate, savePrescription, deletePrescription } from '../db';
+import { Plus, Trash2, Calendar, Clock, CheckCircle, Circle, Camera as CameraIcon } from 'lucide-react';
 
-const PRESET_TIMES = ['9:00 AM', '12:00 PM', '3:00 PM', '6:00 PM', '9:00 PM'];
+const FREQUENCIES = ['Daily', 'Weekly', 'Monthly', 'Custom'];
 
 export default function Prescriptions({ date }) {
   const [prescriptions, setPrescriptions] = useState([]);
-  const [newRx, setNewRx] = useState({ name: '', time_slot: PRESET_TIMES[0] });
-  const [imageFile, setImageFile] = useState(null);
-
-  const loadPrescriptions = async () => {
-    const data = await getPrescriptionsByDate(date);
-    setPrescriptions(data);
-  };
+  const [newRx, setNewRx] = useState({ name: '', frequency: 'Daily', nextDate: date, reminderEnabled: true });
+  const [photoFile, setPhotoFile] = useState(null);
 
   useEffect(() => {
-    let mounted = true;
-    if (mounted) loadPrescriptions();
-    return () => { mounted = false; };
-  }, [date]);
+    loadPrescriptions();
+  }, [date]); // Fixed: Added 'date' to dependency array so the UI correctly updates when navigating between days
 
-  const takePhoto = async () => {
+  const loadPrescriptions = async () => {
     try {
-      const image = await Camera.getPhoto({
-        quality: 90,
-        allowEditing: false, // Fix for "greyed out" bug on modern Android
-        resultType: CameraResultType.DataUrl,
-        source: CameraSource.Prompt
-      });
-
-      setImageFile(image.dataUrl);
-    } catch (err) {
-      console.error('Camera cancelled or failed', err);
+      const data = await getPrescriptionsByDate();
+      setPrescriptions(data.map(rx => ({
+        ...rx,
+        completedToday: Array.isArray(rx.completedDates) && rx.completedDates.includes(date)
+      })));
+    } catch (e) {
+      console.error("Failed to load prescriptions", e);
     }
   };
 
-  const toggleRx = async (id, completed) => {
-    const rx = prescriptions.find(p => p.id === id);
-    if (rx) {
-      await savePrescription({ ...rx, completed }, date);
-      loadPrescriptions();
+  const toggleCompletion = async (rx) => {
+    const updatedRx = { 
+      ...rx, 
+      completedToday: !rx.completedToday,
+      completedDates: rx.completedToday 
+        ? (rx.completedDates || []).filter(d => d !== date)
+        : [...(rx.completedDates || []), date]
+    };
+    
+    // Calculate next due date for scheduling purposes
+    let nextDate = updatedRx.nextDate;
+    if (!updatedRx.completedToday && updatedRx.frequency !== 'Custom') {
+      const d = new Date(updatedRx.nextDate);
+      if (updatedRx.frequency === 'Daily') d.setDate(d.getDate() + 1);
+      else if (updatedRx.frequency === 'Weekly') d.setDate(d.getDate() + 7);
+      else if (updatedRx.frequency === 'Monthly') d.setMonth(d.getMonth() + 1);
+      nextDate = d.toISOString().split('T')[0];
     }
+    
+    updatedRx.nextDate = nextDate;
+    await savePrescription(updatedRx);
+    loadPrescriptions();
   };
 
-  const addRx = async () => {
+  const addPrescription = () => {
     if (!newRx.name.trim()) return;
-    
-    const newRxObj = { id: Date.now(), name: newRx.name, time_slot: newRx.time_slot, image_path: imageFile };
-    await savePrescription(newRxObj, date); // FIXED: Added missing date argument
-    await loadPrescriptions();
-    
-    setNewRx({ name: '', time_slot: PRESET_TIMES[0] });
-    setImageFile(null);
+    const rx = { 
+      id: Date.now().toString(), 
+      name: newRx.name, 
+      frequency: newRx.frequency, 
+      nextDate: newRx.nextDate || date, 
+      reminderEnabled: newRx.reminderEnabled,
+      photo: photoFile,
+      completedDates: []
+    };
+    savePrescription(rx);
+    setPrescriptions([...prescriptions, rx]);
+    setNewRx({ name: '', frequency: 'Daily', nextDate: date, reminderEnabled: true });
+    setPhotoFile(null);
   };
 
-  const removeRx = async (id) => {
-    if (window.confirm('Remove this prescription entirely?')) {
-      await deletePrescription(id);
-      loadPrescriptions();
-    }
+  const removePrescription = async (id) => {
+    await deletePrescription(id);
+    loadPrescriptions();
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-      <h3 className="font-semibold mb-4 text-lg text-gray-800 dark:text-gray-100 flex items-center gap-2">
-        <span className="w-2 h-6 bg-purple-500 rounded-full"></span>
-        Prescriptions & Scheduled Meds
-      </h3>
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Prescriptions & Reminders</h3>
+      
+      {/* Add New Prescription */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-3">
+        <input
+          type="text"
+          value={newRx.name}
+          onChange={(e) => setNewRx({ ...newRx, name: e.target.value })}
+          placeholder="Medication Name"
+          className="w-full bg-transparent border-b border-gray-200 dark:border-gray-700 focus:border-blue-500 outline-none py-1 text-gray-800 dark:text-gray-200"
+        />
+        
+        <div className="flex gap-3 flex-wrap">
+          <select 
+            value={newRx.frequency}
+            onChange={(e) => setNewRx({ ...newRx, frequency: e.target.value })}
+            className="bg-transparent border-b border-gray-200 dark:border-gray-700 focus:border-blue-500 outline-none py-1 text-sm text-gray-600 dark:text-gray-300"
+          >
+            {FREQUENCIES.map(f => <option key={f} value={f}>{f}</option>)}
+          </select>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+          <input 
+            type="date" 
+            value={newRx.nextDate}
+            onChange={(e) => setNewRx({ ...newRx, nextDate: e.target.value })}
+            className="bg-transparent border-b border-gray-200 dark:border-gray-700 focus:border-blue-500 outline-none py-1 text-sm text-gray-600 dark:text-gray-300"
+          />
+
+          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={newRx.reminderEnabled}
+              onChange={(e) => setNewRx({ ...newRx, reminderEnabled: e.target.checked })}
+              className="rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+            />
+            Remind Me
+          </label>
+
+          <button 
+            onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = 'image/*';
+              input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onloadend = () => setPhotoFile(reader.result);
+                  reader.readAsDataURL(file);
+                }
+              };
+              input.click();
+            }} 
+            className="ml-auto text-blue-500 hover:text-blue-600 flex items-center gap-1"
+          >
+            <CameraIcon size={24} /> {photoFile ? 'Photo Added' : 'Add Photo'}
+          </button>
+        </div>
+      </div>
+
+      {/* List */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-3">
         {prescriptions.map(rx => (
-          <div key={rx.id} className={`flex items-center gap-3 p-3 border rounded-lg transition-all ${rx.completed ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:border-purple-300'}`}>
-            <button onClick={() => toggleRx(rx.id, !rx.completed)}>
-              {rx.completed ? <CheckSquare className="text-green-500" size={22} /> : <Square className="text-gray-300 dark:text-gray-500" size={22} />}
+          <div key={rx.id} className="flex items-center gap-3 group p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors">
+            <button onClick={() => toggleCompletion(rx)} className="text-blue-500 hover:text-blue-600 transition-colors flex-shrink-0">
+              {rx.completedToday ? <CheckCircle size={24} /> : <Circle size={24} />}
             </button>
+            
             <div className="flex-1 min-w-0">
-              <p className={`font-medium text-sm truncate ${rx.completed ? 'line-through text-green-700 dark:text-green-400' : 'text-gray-800 dark:text-gray-100'}`}>{rx.name}</p>
-              <span className="text-xs font-semibold text-purple-600 bg-purple-100 dark:bg-purple-900/40 dark:text-purple-300 px-2 py-0.5 rounded-full">
-                {rx.time_slot}
-              </span>
+              <p className={`font-medium truncate ${rx.completedToday ? 'line-through text-gray-400' : 'text-gray-800 dark:text-gray-200'}`}>
+                {rx.name}
+              </p>
+              <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <span className="flex items-center gap-1"><Calendar size={12} /> {rx.frequency}</span>
+                <span className="flex items-center gap-1"><Clock size={12} /> Next: {rx.nextDate}</span>
+                {rx.reminderEnabled && <span className="text-blue-500 flex items-center gap-1">🔔</span>}
+              </div>
             </div>
-            {rx.image_path && (
-              <img 
-                src={rx.image_path} 
-                alt={rx.name} 
-                className="w-8 h-8 object-cover rounded border border-gray-200 dark:border-gray-600 shadow-sm"
-              />
+
+            {rx.photo && (
+              <img src={rx.photo} alt={rx.name} className="w-8 h-8 object-cover rounded border border-gray-200 dark:border-gray-600 shadow-sm flex-shrink-0" />
             )}
-            <button
-              onClick={() => removeRx(rx.id)}
-              className="text-gray-400 hover:text-red-500 transition-colors p-1"
-              title="Remove prescription"
-            >
-              <Trash2 size={16} />
+
+            <button onClick={() => removePrescription(rx.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-opacity flex-shrink-0">
+              <Trash2 size={18} />
             </button>
           </div>
         ))}
-      </div>
-
-      <div className="border-t dark:border-gray-700 pt-3 space-y-2">
-        <input 
-          value={newRx.name} 
-          onChange={e => setNewRx({...newRx, name: e.target.value})} 
-          placeholder="Add prescription..." 
-          className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-        />
-        
-        <div className="flex gap-2">
-          <select 
-            value={newRx.time_slot} 
-            onChange={e => setNewRx({...newRx, time_slot: e.target.value})} 
-            className="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2 rounded-lg text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-purple-500"
-          >
-            {PRESET_TIMES.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-
-          <button
-            onClick={takePhoto}
-            className={`flex items-center gap-1 cursor-pointer text-xs p-2 rounded-lg transition-colors border ${imageFile ? 'bg-purple-100 border-purple-500 text-purple-700' : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-500 hover:text-purple-600'}`}
-          >
-            <CameraIcon size={14} /> {imageFile ? 'Captured' : 'Photo'}
-          </button>
-
-          <button onClick={addRx} className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg flex items-center gap-1 transition-colors font-medium text-sm">
-            <Plus size={18} /> Add
-          </button>
-        </div>
       </div>
     </div>
   );

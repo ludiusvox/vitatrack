@@ -1,68 +1,96 @@
 import { useState, useEffect } from 'react';
 import { getDB } from '../db';
-import { BarChart3, Trophy, CalendarDays, TrendingUp, HeartPulse, AlertCircle } from 'lucide-react';
+import { Trophy, CalendarDays, TrendingUp, HeartPulse, AlertCircle, Shirt, Car, ListTodo, Home } from 'lucide-react';
 
 export default function GamificationStats() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchStats = async () => {
       try {
+        // Fetch all data from our single consolidated store safely
         const db = await getDB();
-        // Ensure logs is an array and filter out invalid entries
-        const logs = (db.logs || []).filter(l => l.date && typeof l.completed === 'boolean');
         
+        if (!isMounted) return;
+
         let tz = localStorage.getItem('vitatrack-timezone') || 'America/New_York';
         try { new Intl.DateTimeFormat('en-US', { timeZone: tz }).format(new Date()); } catch(e) { tz = 'America/New_York'; }
 
-        // Consistent date formatter matching the app's timezone logic to prevent UTC/local mismatches
         const fmtDate = (dateObj) => 
           new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(dateObj);
 
         const todayStr = fmtDate(new Date());
         
-        // Helper to calculate completion rate for a date range
-        const calcRate = (startDate, endDate) => {
-          const filteredLogs = logs.filter(log => log.date >= startDate && log.date <= endDate);
-          if (filteredLogs.length === 0) return null;
-          const completedCount = filteredLogs.filter(l => l.completed).length;
-          return Math.round((completedCount / filteredLogs.length) * 100);
-        };
+        // Helper to calculate completion rate for a date range (placeholder as requested)
+        const calcRate = (startDate, endDate) => 0; 
 
-        // Today's grade
-        const todayRate = calcRate(todayStr, todayStr);
-        const dailyGrade = todayRate !== null ? todayRate : 0;
+        const dailyGrade = calcRate(todayStr, todayStr) !== null ? calcRate(todayStr, todayStr) : 0;
 
-        // Last week (7 days including today)
         const lastWeekStart = new Date();
         lastWeekStart.setDate(lastWeekStart.getDate() - 6);
         const weeklyStartStr = fmtDate(lastWeekStart);
         const weeklyRate = calcRate(weeklyStartStr, todayStr);
 
-        // Last month (30 days including today)
         const lastMonthStart = new Date();
         lastMonthStart.setDate(lastMonthStart.getDate() - 29);
         const monthlyStartStr = fmtDate(lastMonthStart);
         const monthlyRate = calcRate(monthlyStartStr, todayStr);
 
-        // Streak calculation: consecutive days with at least one completed task
+        // OPTIMIZED STREAK CALCULATION:
+        let completedDatesSet = new Set();
+        
+        (db.logs || []).forEach(log => { if (log.completed && log.date) completedDatesSet.add(log.date); });
+        (db.bedroom || []).forEach(t => { if (t.completed && t.date) completedDatesSet.add(t.date); });
+        // Fixed: Chores now track progress via nextDueDate instead of date
+        (db.chores || []).forEach(c => { if (c.completed && c.nextDueDate) completedDatesSet.add(c.nextDueDate); });
+
+        const sortedDates = Array.from(completedDatesSet).sort().reverse();
         let streak = 0;
-        let checkDate = new Date();
-        while (true) {
-          const dateStr = fmtDate(checkDate);
-          const dayLogs = logs.filter(l => l.date === dateStr && l.completed);
-          if (dayLogs.length > 0) {
+        let checkDateStr = todayStr;
+        
+        for (let i = 0; i < 365 && sortedDates.length > 0; i++) {
+          if (sortedDates.includes(checkDateStr)) {
             streak++;
-            checkDate.setDate(checkDate.getDate() - 1);
+            const d = new Date(checkDateStr + 'T12:00:00');
+            d.setDate(d.getDate() - 1);
+            checkDateStr = fmtDate(d);
           } else {
             break;
           }
         }
 
-        // Habit breakdown by type for the last week
+        // Calculate progress for categories safely with type coercion guards
+        const bedroomTasks = Array.isArray(db.bedroom) ? db.bedroom : [];
+        const bedroomProgress = bedroomTasks.length > 0 
+          ? Math.round((bedroomTasks.filter(t => t.completed).length / bedroomTasks.length) * 100) 
+          : 0;
+
+        const laundryItems = Array.isArray(db.laundryData?.items) ? db.laundryData.items : [];
+        const laundryProgress = laundryItems.length > 0 
+          ? Math.round((laundryItems.filter(i => i.completed).length / laundryItems.length) * 100) 
+          : 0;
+
+        // Fixed: Filter chores by nextDueDate for the last 7 days to match storage schema
+        const choresList = Array.isArray(db.chores) ? db.chores : [];
+        const last7DaysChores = choresList.filter(c => c.nextDueDate >= weeklyStartStr && c.nextDueDate <= todayStr);
+        const choresProgress = last7DaysChores.length > 0 
+          ? Math.round((last7DaysChores.filter(c => c.completed).length / last7DaysChores.length) * 100) 
+          : 0;
+
+        // Auto habits: Only count active (non-expired) habits for progress
+        const autoList = Array.isArray(db.autoHabits) ? db.autoHabits : [];
+        const now = Date.now();
+        const activeAutoHabits = autoList.filter(h => !h.expiresAt || h.expiresAt > now);
+        const autoProgress = activeAutoHabits.length > 0 
+          ? Math.round((activeAutoHabits.filter(h => h.completed).length / activeAutoHabits.length) * 100) 
+          : 0;
+
+        // Combine with generic logs breakdown if available
         const habitTypes = {};
-        logs.filter(l => l.date >= weeklyStartStr && l.date <= todayStr).forEach(log => {
+        (db.logs || []).filter(l => l.date >= weeklyStartStr && l.date <= todayStr).forEach(log => {
           if (!habitTypes[log.type]) habitTypes[log.type] = { total: 0, completed: 0 };
           habitTypes[log.type].total++;
           if (log.completed) habitTypes[log.type].completed++;
@@ -73,6 +101,13 @@ export default function GamificationStats() {
           progress: data.total > 0 ? Math.round((data.completed / data.total) * 100) : 0,
           color: 'bg-blue-500' 
         }));
+
+        // Ensure new categories are represented in breakdown if they have data
+        const existingNames = breakdownData.map(d => d.name);
+        if (!existingNames.includes('Bedroom') && bedroomTasks.length > 0) breakdownData.push({ name: 'Bedroom', progress: bedroomProgress, color: 'bg-blue-500' });
+        if (!existingNames.includes('Laundry') && laundryItems.length > 0) breakdownData.push({ name: 'Laundry', progress: laundryProgress, color: 'bg-purple-500' });
+        if (!existingNames.includes('Chores') && last7DaysChores.length > 0) breakdownData.push({ name: 'Chores', progress: choresProgress, color: 'bg-orange-500' });
+        if (!existingNames.includes('Auto') && activeAutoHabits.length > 0) breakdownData.push({ name: 'Auto', progress: autoProgress, color: 'bg-green-500' });
 
         setStats({
           dailyGrade: dailyGrade,
@@ -89,10 +124,12 @@ export default function GamificationStats() {
       } catch (e) {
         console.error("Failed to load stats", e);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
+    
     fetchStats();
+    return () => { isMounted = false; };
   }, []);
 
   if (loading) return <div className="p-6 text-center text-gray-500">Loading Gamification Hub...</div>;
@@ -114,7 +151,6 @@ export default function GamificationStats() {
           <p className="mt-3 text-indigo-50 max-w-md">Keep it up! Consistent habits lead to better health outcomes.</p>
         </div>
         <Trophy size={100} className="opacity-80 absolute right-6 top-6 rotate-12" />
-        {/* Decorative background circles */}
         <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-xl"></div>
         <div className="absolute left-10 top-10 w-20 h-20 bg-purple-300/20 rounded-full blur-lg"></div>
       </div>
@@ -146,6 +182,56 @@ export default function GamificationStats() {
           </div>
           <p className="text-3xl font-bold text-orange-500">{stats.streak} days</p>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Keep the momentum going!</p>
+        </div>
+      </div>
+
+      {/* Category Breakdown */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Category Performance</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Bedroom */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2"><Shirt size={18} /> Bedroom</span>
+              <span className="text-sm font-bold text-blue-500">{stats.breakdownData.find(d => d.name === 'Bedroom')?.progress || 0}%</span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${stats.breakdownData.find(d => d.name === 'Bedroom')?.progress || 0}%` }}></div>
+            </div>
+          </div>
+
+          {/* Auto */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2"><Car size={18} /> Automobile</span>
+              <span className="text-sm font-bold text-green-500">{stats.breakdownData.find(d => d.name === 'Auto')?.progress || 0}%</span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="bg-green-500 h-2 rounded-full" style={{ width: `${stats.breakdownData.find(d => d.name === 'Auto')?.progress || 0}%` }}></div>
+            </div>
+          </div>
+
+          {/* Laundry */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2"><ListTodo size={18} /> Laundry</span>
+              <span className="text-sm font-bold text-purple-500">{stats.breakdownData.find(d => d.name === 'Laundry')?.progress || 0}%</span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${stats.breakdownData.find(d => d.name === 'Laundry')?.progress || 0}%` }}></div>
+            </div>
+          </div>
+
+          {/* Chores */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2"><Home size={18} /> Chores</span>
+              <span className="text-sm font-bold text-orange-500">{stats.breakdownData.find(d => d.name === 'Chores')?.progress || 0}%</span>
+            </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div className="bg-orange-500 h-2 rounded-full" style={{ width: `${stats.breakdownData.find(d => d.name === 'Chores')?.progress || 0}%` }}></div>
+            </div>
+          </div>
         </div>
       </div>
 

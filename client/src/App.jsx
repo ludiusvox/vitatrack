@@ -2,9 +2,13 @@ import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import HygieneChecklist from './components/HygieneChecklist';
 import Medications from './components/Medications';
-import Prescriptions from './components/Prescriptions';
 import GamificationStats from './components/GamificationStats';
-import { Moon, Sun, PanelLeftOpen, PanelLeftClose, LayoutDashboard, BarChart3 } from 'lucide-react';
+import BedroomTracker from './components/BedroomTracker';
+import AutoTracker from './components/AutoTracker';
+import LaundryCountdown from './components/LaundryCountdown';
+import ChoreChecklist from './components/ChoreChecklist';
+import Prescriptions from './components/Prescriptions';
+import { Moon, Sun, PanelLeftOpen, PanelLeftClose } from 'lucide-react';
 
 export default function App() {
   const getTodayStr = () => {
@@ -63,6 +67,30 @@ export default function App() {
     }
   }, [isDarkMode]);
 
+  const renderContent = () => {
+    switch (activeView) {
+      case 'bedroom': return <BedroomTracker date={selectedDate} />;
+      case 'auto': return <AutoTracker />;
+      case 'laundry': return <LaundryCountdown />;
+      case 'chores': return <ChoreChecklist date={selectedDate} />;
+      case 'prescriptions': return <Prescriptions date={selectedDate} />;
+      case 'stats': return <GamificationStats />;
+      default: return (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                Hygiene Checklist — {selectedDate}
+              </h3>
+              <HygieneChecklist date={selectedDate} />
+            </div>
+            <Medications date={selectedDate} />
+          </div>
+        </>
+      );
+    }
+  };
+
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900 font-sans text-gray-900 dark:text-gray-100 transition-colors duration-200">
       <Sidebar
@@ -70,6 +98,8 @@ export default function App() {
         setSelectedDate={setSelectedDate}
         isCollapsed={isSidebarCollapsed}
         setIsCollapsed={setIsSidebarCollapsed}
+        activeView={activeView}
+        setActiveView={setActiveView}
       />
 
       <main className="flex-1 p-6 overflow-y-auto">
@@ -82,36 +112,15 @@ export default function App() {
               >
                 {isSidebarCollapsed ? <PanelLeftOpen size={24} /> : <PanelLeftClose size={24} />}
               </button>
-              <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Daily Health Tracker</h1>
+              <h1 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-500 dark:from-blue-400 dark:to-indigo-300 drop-shadow-sm">
+                VitaTrack
+              </h1>
             </div>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">Track hygiene, medications, and prescriptions.</p>
+            <p className="text-gray-500 dark:text-gray-400 mt-1 font-medium italic">Elevate your daily wellness journey.</p>
           </div>
 
           {/* Right-aligned Tabs & Dark Mode Toggle */}
           <div className="flex items-center gap-3">
-            <div className="bg-white dark:bg-gray-800 p-1 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex">
-              <button
-                onClick={() => setActiveView('tracker')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                  activeView === 'tracker' 
-                    ? 'bg-indigo-500 text-white shadow-md' 
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
-              >
-                <LayoutDashboard size={18} /> Tracker
-              </button>
-              <button
-                onClick={() => setActiveView('stats')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                  activeView === 'stats' 
-                    ? 'bg-indigo-500 text-white shadow-md' 
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
-              >
-                <BarChart3 size={18} /> Stats
-              </button>
-            </div>
-
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               className="p-3 bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all text-gray-600 dark:text-gray-300"
@@ -121,23 +130,7 @@ export default function App() {
           </div>
         </header>
 
-        {activeView === 'tracker' ? (
-          <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                  Hygiene Checklist — {selectedDate}
-                </h3>
-                <HygieneChecklist date={selectedDate} />
-              </div>
-              <Medications date={selectedDate} />
-            </div>
-
-            <Prescriptions date={selectedDate} />
-          </>
-        ) : (
-          <GamificationStats />
-        )}
+        {renderContent()}
       </main>
     </div>
   );

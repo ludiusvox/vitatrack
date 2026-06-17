@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Calendar, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, PanelLeftClose, PanelLeftOpen, X, Home, Car, Shirt, ListTodo, Pill } from 'lucide-react';
 
 const COMMON_TIMEZONES = [
   'UTC',
@@ -13,7 +13,7 @@ const COMMON_TIMEZONES = [
   'Australia/Sydney'
 ];
 
-export default function Sidebar({ selectedDate, setSelectedDate, isCollapsed, setIsCollapsed }) {
+export default function Sidebar({ selectedDate, setSelectedDate, isCollapsed, setIsCollapsed, activeView, setActiveView }) {
   const [timezone, setTimezone] = useState(() => {
     return localStorage.getItem('vitatrack-timezone') || 'America/New_York';
   });
@@ -70,6 +70,16 @@ export default function Sidebar({ selectedDate, setSelectedDate, isCollapsed, se
 
   const dateList = generateDateList();
 
+  const navItems = [
+    { id: 'tracker', label: 'Tracker', icon: Home },
+    { id: 'bedroom', label: 'Bedroom', icon: Shirt },
+    { id: 'auto', label: 'Auto', icon: Car },
+    { id: 'laundry', label: 'Laundry', icon: ListTodo },
+    { id: 'chores', label: 'Chores', icon: ListTodo },
+    { id: 'prescriptions', label: 'Prescriptions', icon: Pill },
+    { id: 'stats', label: 'Stats', icon: Home } 
+  ];
+
   return (
     <aside className={`${isCollapsed ? 'w-0 lg:w-20 overflow-hidden p-0 lg:p-5' : 'w-72 p-5'} bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col gap-4 shadow-sm transition-all duration-300 relative z-40`}>
       {/* Desktop Collapse Toggle */}
@@ -100,6 +110,24 @@ export default function Sidebar({ selectedDate, setSelectedDate, isCollapsed, se
 
       {!isCollapsed && (
         <>
+          {/* Category Navigation */}
+          <div className="grid grid-cols-3 gap-2">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveView(item.id)}
+                className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all ${
+                  activeView === item.id 
+                    ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' 
+                    : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                <item.icon size={20} />
+                <span className="text-[10px] mt-1 font-medium">{item.label}</span>
+              </button>
+            ))}
+          </div>
+
           <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Select Date</label>
             <input
