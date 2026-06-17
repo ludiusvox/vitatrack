@@ -215,6 +215,8 @@ export const deleteBedroomTask = async (id) => {
   try {
     const db = await getDB();
     db.bedroom = (db.bedroom || []).filter(t => String(t.id) !== String(id));
+    // Also clean up all daily completion logs for this specific recurring habit
+    db.logs = (db.logs || []).filter(l => !(l.type === 'bedroom' && String(l.itemId) === String(id)));
     await saveDB(db);
   } catch (e) {
     console.error('Failed to delete bedroom task:', e);
