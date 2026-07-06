@@ -140,7 +140,7 @@ export default function GamificationStats() {
 
         // Ensure new categories are represented in breakdown if they have data
         const existingNames = breakdownData.map(d => d.name);
-        if (!existingNames.includes('Bedroom') && bedroomTasks.length > 0) breakdownData.push({ name: 'Bedroom', progress: bedroomProgress, color: 'bg-blue-500' });
+        if (!existingNames.includes('Bedroom') && bedroomTemplates.length > 0) breakdownData.push({ name: 'Bedroom', progress: bedroomProgress, color: 'bg-blue-500' });
         if (!existingNames.includes('Laundry') && laundryItems.length > 0) breakdownData.push({ name: 'Laundry', progress: laundryProgress, color: 'bg-purple-500' });
         if (!existingNames.includes('Chores') && last7DaysChores.length > 0) breakdownData.push({ name: 'Chores', progress: choresProgress, color: 'bg-orange-500' });
         if (!existingNames.includes('Auto') && activeAutoHabits.length > 0) breakdownData.push({ name: 'Auto', progress: autoProgress, color: 'bg-green-500' });
