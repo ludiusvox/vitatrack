@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import HygieneChecklist from './components/HygieneChecklist';
-import Medications from './components/Medications';
 import GamificationStats from './components/GamificationStats';
 import BedroomTracker from './components/BedroomTracker';
 import AutoTracker from './components/AutoTracker';
 import LaundryCountdown from './components/LaundryCountdown';
 import ChoreChecklist from './components/ChoreChecklist';
-import Prescriptions from './components/Prescriptions';
+import MedicationManager from './components/MedicationManager';
 import { Moon, Sun, PanelLeftOpen, PanelLeftClose } from 'lucide-react';
 
 export default function App() {
@@ -73,18 +72,15 @@ export default function App() {
       case 'auto': return <AutoTracker />;
       case 'laundry': return <LaundryCountdown />;
       case 'chores': return <ChoreChecklist date={selectedDate} />;
-      case 'prescriptions': return <Prescriptions date={selectedDate} />;
+      case 'medications': return <MedicationManager date={selectedDate} />;
       case 'stats': return <GamificationStats />;
       default: return (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                Hygiene Checklist — {selectedDate}
-              </h3>
-              <HygieneChecklist date={selectedDate} />
-            </div>
-            <Medications date={selectedDate} />
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">
+              Hygiene Checklist — {selectedDate}
+            </h3>
+            <HygieneChecklist date={selectedDate} />
           </div>
         </>
       );

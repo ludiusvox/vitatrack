@@ -24,20 +24,55 @@ export default function GamificationStats() {
 
         const todayStr = fmtDate(new Date());
         
-        // Helper to calculate completion rate for a date range (placeholder as requested)
-        const calcRate = (startDate, endDate) => 0; 
+        // Helper to calculate completion rate for a date range
+        const calcRateForRange = (startDateStr, endDateStr) => {
+          const start = new Date(startDateStr + 'T12:00:00');
+          const end = new Date(endDateStr + 'T12:00:00');
+          let totalTasks = 0;
+          let completedTasks = 0;
 
-        const dailyGrade = calcRate(todayStr, todayStr) !== null ? calcRate(todayStr, todayStr) : 0;
+          // Iterate through dates in range
+          for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+            const dateStr = fmtDate(d);
+
+            // Hygiene
+            const hygieneLogs = (db.logs || []).filter(l => l.date === dateStr && l.type === 'hygiene');
+            totalTasks += (db.hygiene || []).length;
+            completedTasks += hygieneLogs.filter(l => l.completed).length;
+
+            // Medications
+            const medLogs = (db.logs || []).filter(l => l.date === dateStr && l.type === 'medication');
+            totalTasks += (db.medications || []).length;
+            completedTasks += medLogs.filter(l => l.completed).length;
+
+            // Prescriptions
+            (db.prescriptions || []).forEach(rx => {
+               totalTasks++;
+               if (Array.isArray(rx.completedDates) && rx.completedDates.includes(dateStr)) {
+                 completedTasks++;
+               }
+            });
+
+            // Bedroom
+            const bedroomLogs = (db.logs || []).filter(l => l.date === dateStr && l.type === 'bedroom');
+            totalTasks += (db.bedroom || []).length;
+            completedTasks += bedroomLogs.filter(l => l.completed).length;
+          }
+
+          return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : null;
+        };
+
+        const dailyGrade = calcRateForRange(todayStr, todayStr) || 0;
 
         const lastWeekStart = new Date();
         lastWeekStart.setDate(lastWeekStart.getDate() - 6);
         const weeklyStartStr = fmtDate(lastWeekStart);
-        const weeklyRate = calcRate(weeklyStartStr, todayStr);
+        const weeklyRate = calcRateForRange(weeklyStartStr, todayStr);
 
         const lastMonthStart = new Date();
         lastMonthStart.setDate(lastMonthStart.getDate() - 29);
         const monthlyStartStr = fmtDate(lastMonthStart);
-        const monthlyRate = calcRate(monthlyStartStr, todayStr);
+        const monthlyRate = calcRateForRange(monthlyStartStr, todayStr);
 
         // OPTIMIZED STREAK CALCULATION:
         let completedDatesSet = new Set();
@@ -105,7 +140,7 @@ export default function GamificationStats() {
 
         // Ensure new categories are represented in breakdown if they have data
         const existingNames = breakdownData.map(d => d.name);
-        if (!existingNames.includes('Bedroom') && bedroomTasks.length > 0) breakdownData.push({ name: 'Bedroom', progress: bedroomProgress, color: 'bg-blue-500' });
+        if (!existingNames.includes('Bedroom') && bedroomTemplates.length > 0) breakdownData.push({ name: 'Bedroom', progress: bedroomProgress, color: 'bg-blue-500' });
         if (!existingNames.includes('Laundry') && laundryItems.length > 0) breakdownData.push({ name: 'Laundry', progress: laundryProgress, color: 'bg-purple-500' });
         if (!existingNames.includes('Chores') && last7DaysChores.length > 0) breakdownData.push({ name: 'Chores', progress: choresProgress, color: 'bg-orange-500' });
         if (!existingNames.includes('Auto') && activeAutoHabits.length > 0) breakdownData.push({ name: 'Auto', progress: autoProgress, color: 'bg-green-500' });
