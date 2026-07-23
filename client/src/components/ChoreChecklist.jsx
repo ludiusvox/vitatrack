@@ -81,7 +81,11 @@ export default function ChoreChecklist({ date }) {
       <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-3">
         {chores.map(chore => (
           <div key={chore.id} className="flex items-center gap-3 group p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border border-transparent hover:border-gray-100 dark:hover:border-gray-600">
-            <button onClick={() => toggleChore(chore)} className="text-blue-500 hover:text-blue-600 transition-colors flex-shrink-0">
+            <button
+              onClick={() => toggleChore(chore)}
+              className="text-blue-500 hover:text-blue-600 transition-colors flex-shrink-0"
+              aria-label={chore.completed ? `Mark ${chore.name} as incomplete` : `Mark ${chore.name} as complete`}
+            >
               {chore.completed ? <CheckCircle size={28} className="text-green-500" /> : <Circle size={28} className="text-gray-300 dark:text-gray-500" />}
             </button>
             <div className="flex-1 min-w-0">
@@ -97,7 +101,7 @@ export default function ChoreChecklist({ date }) {
             <button
               onClick={() => removeChore(chore.id)}
               className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0 p-1"
-              title="Delete chore"
+              aria-label={`Remove ${chore.name}`}
             >
               <Trash2 size={20} />
             </button>

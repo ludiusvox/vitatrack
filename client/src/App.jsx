@@ -31,7 +31,7 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState(getTodayStr());
   const [today, setToday] = useState(getTodayStr());
   const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem('theme') === 'dark');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [activeView, setActiveView] = useState('tracker');
 
   useEffect(() => {
@@ -105,6 +105,7 @@ export default function App() {
               <button
                 onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                 className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg transition-colors lg:hidden"
+                aria-label={isSidebarCollapsed ? "Open sidebar" : "Close sidebar"}
               >
                 {isSidebarCollapsed ? <PanelLeftOpen size={24} /> : <PanelLeftClose size={24} />}
               </button>
@@ -115,11 +116,11 @@ export default function App() {
             <p className="text-gray-500 dark:text-gray-400 mt-1 font-medium italic">Elevate your daily wellness journey.</p>
           </div>
 
-          {/* Right-aligned Tabs & Dark Mode Toggle */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               className="p-3 bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all text-gray-600 dark:text-gray-300"
+              aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
             >
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>

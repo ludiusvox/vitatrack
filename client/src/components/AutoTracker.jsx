@@ -52,7 +52,11 @@ export default function AutoTracker() {
       <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-3">
         {habits.map(habit => (
           <div key={habit.id} className="flex items-center gap-3 group relative p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border border-transparent hover:border-gray-100 dark:hover:border-gray-600">
-            <button onClick={() => toggleHabit(habit)} className="text-blue-500 hover:text-blue-600 transition-colors flex-shrink-0">
+            <button
+              onClick={() => toggleHabit(habit)}
+              className="text-blue-500 hover:text-blue-600 transition-colors flex-shrink-0"
+              aria-label={habit.completed ? `Mark ${habit.name} as incomplete` : `Mark ${habit.name} as complete`}
+            >
               {habit.completed ? <CheckCircle size={24} className="text-green-500" /> : <Circle size={24} className="text-gray-300 dark:text-gray-500" />}
             </button>
             
@@ -68,7 +72,7 @@ export default function AutoTracker() {
             <button
               onClick={() => removeHabit(habit.id)}
               className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0 p-1"
-              title="Delete habit"
+              aria-label={`Remove ${habit.name}`}
             >
               <Trash2 size={18} />
             </button>

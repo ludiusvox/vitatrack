@@ -80,7 +80,11 @@ export default function LaundryCountdown() {
         <Shirt size={48} className={`${isComplete ? 'text-green-500' : 'text-blue-500'}`} />
         
         <div className="flex items-center gap-4">
-          <button onClick={() => adjustCount(-1)} className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+          <button
+            onClick={() => adjustCount(-1)}
+            className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            aria-label="Decrease laundry count"
+          >
             <Minus size={20} />
           </button>
           
@@ -90,7 +94,11 @@ export default function LaundryCountdown() {
             <p className="text-5xl font-bold text-gray-800 dark:text-white">{safeCount}</p>
           </div>
 
-          <button onClick={() => adjustCount(1)} className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+          <button
+            onClick={() => adjustCount(1)}
+            className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            aria-label="Increase laundry count"
+          >
             <Plus size={20} />
           </button>
         </div>
@@ -111,13 +119,21 @@ export default function LaundryCountdown() {
         <ul className="space-y-2">
           {items.map(item => (
             <li key={item.id} className="flex items-center gap-3 group p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-              <button onClick={() => toggleItem(item.id)} className="text-blue-500 hover:text-blue-600 transition-colors flex-shrink-0">
+              <button
+                onClick={() => toggleItem(item.id)}
+                className="text-blue-500 hover:text-blue-600 transition-colors flex-shrink-0"
+                aria-label={item.completed ? `Mark ${item.text} as incomplete` : `Mark ${item.text} as complete`}
+              >
                 {item.completed ? <CheckSquare size={20} /> : <Square size={20} />}
               </button>
               <span className={`flex-1 text-sm ${item.completed ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-200'}`}>
                 {item.text}
               </span>
-              <button onClick={() => removeItem(item.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-opacity flex-shrink-0">
+              <button
+                onClick={() => removeItem(item.id)}
+                className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-opacity flex-shrink-0"
+                aria-label={`Remove ${item.text}`}
+              >
                 <Trash2 size={16} />
               </button>
             </li>

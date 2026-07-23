@@ -70,7 +70,10 @@ export default function Medications({ date }) {
       <ul className="space-y-3 mb-4 max-h-[300px] overflow-y-auto pr-1">
         {meds.map(med => (
           <li key={med.id} className="flex items-center gap-3 p-2 border border-gray-100 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-white dark:hover:bg-gray-700 transition-colors">
-            <button onClick={() => toggleMed(med.id, !med.completed)}>
+            <button
+              onClick={() => toggleMed(med.id, !med.completed)}
+              aria-label={med.completed ? `Mark ${med.name} as incomplete` : `Mark ${med.name} as complete`}
+            >
               {med.completed ? <CheckSquare className="text-green-500" size={22} /> : <Square className="text-gray-300 dark:text-gray-500" size={22} />}
             </button>
             <div className="flex-1 min-w-0">
@@ -89,7 +92,7 @@ export default function Medications({ date }) {
             <button
               onClick={() => removeMed(med.id)}
               className="text-gray-400 hover:text-red-500 transition-colors p-1"
-              title="Remove medication"
+              aria-label={`Remove ${med.name}`}
             >
               <Trash2 size={16} />
             </button>

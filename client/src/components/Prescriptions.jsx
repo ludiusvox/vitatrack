@@ -163,7 +163,11 @@ export default function Prescriptions({ date }) {
         ) : (
           prescriptions.map(rx => (
             <div key={rx.id} className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4 group hover:shadow-md transition-all">
-              <button onClick={() => toggleCompletion(rx)} className="text-blue-500 hover:text-blue-600 transition-colors flex-shrink-0">
+              <button
+                onClick={() => toggleCompletion(rx)}
+                className="text-blue-500 hover:text-blue-600 transition-colors flex-shrink-0"
+                aria-label={rx.completedToday ? `Mark ${rx.name} as incomplete` : `Mark ${rx.name} as complete`}
+              >
                 {rx.completedToday ? <CheckCircle size={32} className="text-green-500" /> : <Circle size={32} className="text-gray-300 dark:text-gray-600" />}
               </button>
 
@@ -187,7 +191,11 @@ export default function Prescriptions({ date }) {
                 </div>
               )}
 
-              <button onClick={() => removePrescription(rx.id)} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 flex-shrink-0">
+              <button
+                onClick={() => removePrescription(rx.id)}
+                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 flex-shrink-0"
+                aria-label={`Remove ${rx.name}`}
+              >
                 <Trash2 size={20} />
               </button>
             </div>

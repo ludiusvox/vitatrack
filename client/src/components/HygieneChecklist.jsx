@@ -46,7 +46,10 @@ export default function HygieneChecklist({ date }) {
       <ul className="space-y-3 mb-4 max-h-[300px] overflow-y-auto pr-1">
         {tasks.map(task => (
           <li key={task.task_name} className="flex items-center gap-3 p-2 border border-gray-100 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-white dark:hover:bg-gray-700 transition-colors">
-            <button onClick={() => toggleTask(task.task_name, !task.completed)}>
+            <button
+              onClick={() => toggleTask(task.task_name, !task.completed)}
+              aria-label={task.completed ? `Mark ${task.task_name} as incomplete` : `Mark ${task.task_name} as complete`}
+            >
               {task.completed ? <CheckSquare className="text-blue-500" size={22} /> : <Square className="text-gray-300 dark:text-gray-500" size={22} />}
             </button>
             <span className={`flex-1 text-sm font-medium truncate ${task.completed ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-800 dark:text-gray-100'}`}>
@@ -55,6 +58,7 @@ export default function HygieneChecklist({ date }) {
             <button
               onClick={() => removeTask(task.task_name)}
               className="text-gray-400 hover:text-red-500 transition-colors p-1"
+              aria-label={`Remove ${task.task_name}`}
             >
               <Trash2 size={16} />
             </button>

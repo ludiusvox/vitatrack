@@ -56,14 +56,14 @@ export default function Sidebar({ selectedDate, setSelectedDate, isCollapsed, se
     setSelectedDate(formatDate(d));
   };
 
-  // Generate a list of dates for the sidebar listing (e.g., last 3 days to next 3 days)
+  // Generate a list of dates for the sidebar listing (e.g., today and the last 6 days)
   const generateDateList = () => {
     const dates = [];
-    const baseDate = new Date(selectedDate + 'T12:00:00');
-    for (let i = -3; i <= 3; i++) {
+    const baseDate = new Date(); // Use actual today for "Recent" logic
+    for (let i = 0; i > -7; i--) {
       const d = new Date(baseDate);
       d.setDate(d.getDate() + i);
-      dates.push(formatDate(d)); // Now safely handles the Date object
+      dates.push(formatDate(d));
     }
     return dates;
   };
@@ -80,53 +80,72 @@ export default function Sidebar({ selectedDate, setSelectedDate, isCollapsed, se
     { id: 'stats', label: 'Stats', icon: BarChart2 }
   ];
 
-  return (
-    <aside className={`${isCollapsed ? 'w-0 lg:w-20 overflow-hidden p-0 lg:p-5' : 'w-72 p-5'} bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col gap-4 shadow-sm transition-all duration-300 relative z-40`}>
-      {/* Desktop Collapse Toggle */}
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-10 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full p-1 shadow-md hover:text-blue-600 dark:hover:text-blue-400 transition-colors hidden lg:block"
-      >
-        {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-      </button>
+  const handleNavClick = (viewId) => {
+    setActiveView(viewId);
+    // On mobile, close sidebar after clicking a nav item
+    if (window.innerWidth < 1024) {
+      setIsCollapsed(true);
+    }
+  };
 
-      {/* Sidebar Header with X Close Button */}
-      <div className="flex items-center justify-between text-blue-600 dark:text-blue-400 mb-2">
-        <div className={`flex items-center gap-2 ${isCollapsed ? 'mx-auto' : ''}`}>
-          <Calendar size={24} />
-          {!isCollapsed && <h2 className="text-xl font-bold tracking-tight">History</h2>}
+  return (
+    <>
+      {/* Mobile Backdrop */}
+      {!isCollapsed && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden backdrop-blur-sm transition-opacity"
+          onClick={() => setIsCollapsed(true)}
+        />
+      )}
+
+      <aside className={`${isCollapsed ? 'w-0 lg:w-20 overflow-hidden p-0 lg:p-5' : 'w-72 p-5'} bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col gap-4 shadow-sm transition-all duration-300 fixed lg:static inset-y-0 left-0 z-40`}>
+        {/* Desktop Collapse Toggle */}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="absolute -right-3 top-10 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full p-1 shadow-md hover:text-blue-600 dark:hover:text-blue-400 transition-colors hidden lg:block"
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+        </button>
+
+        {/* Sidebar Header with X Close Button */}
+        <div className="flex items-center justify-between text-blue-600 dark:text-blue-400 mb-2">
+          <div className={`flex items-center gap-2 ${isCollapsed ? 'mx-auto' : ''}`}>
+            <Calendar size={24} />
+            {!isCollapsed && <h2 className="text-xl font-bold tracking-tight">History</h2>}
+          </div>
+
+          {!isCollapsed && (
+            <button
+              onClick={() => setIsCollapsed(true)}
+              className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full text-gray-400 hover:text-red-500 transition-all shadow-sm border border-transparent hover:border-red-100"
+              aria-label="Close Sidebar"
+            >
+              <X size={24} />
+            </button>
+          )}
         </div>
 
         {!isCollapsed && (
-          <button
-            onClick={() => setIsCollapsed(true)}
-            className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full text-gray-400 hover:text-red-500 transition-all shadow-sm border border-transparent hover:border-red-100"
-            aria-label="Close Sidebar"
-          >
-            <X size={24} />
-          </button>
-        )}
-      </div>
-
-      {!isCollapsed && (
-        <>
-          {/* Category Navigation */}
-          <div className="grid grid-cols-3 gap-2">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveView(item.id)}
-                className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all ${
-                  activeView === item.id 
-                    ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' 
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-                }`}
-              >
-                <item.icon size={20} />
-                <span className="text-[10px] mt-1 font-medium">{item.label}</span>
-              </button>
-            ))}
-          </div>
+          <>
+            {/* Category Navigation */}
+            <div className="grid grid-cols-3 gap-2">
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavClick(item.id)}
+                  className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all ${
+                    activeView === item.id
+                      ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                  }`}
+                  aria-label={`Go to ${item.label}`}
+                >
+                  <item.icon size={20} />
+                  <span className="text-[10px] mt-1 font-medium">{item.label}</span>
+                </button>
+              ))}
+            </div>
 
           <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Select Date</label>
@@ -216,5 +235,6 @@ export default function Sidebar({ selectedDate, setSelectedDate, isCollapsed, se
         )}
       </div>
     </aside>
+    </>
   );
 }

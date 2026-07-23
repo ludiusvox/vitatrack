@@ -58,7 +58,11 @@ export default function BedroomTracker({ date }) {
             <ul className="space-y-2 mb-3 flex-1 overflow-y-auto max-h-[200px] pr-1">
               {slot.items.map(item => (
                 <li key={item.id} className="flex items-center gap-2 group p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border border-transparent hover:border-gray-100 dark:hover:border-gray-600">
-                  <button onClick={() => toggleItem(slot.timeSlot, item.id)} className="text-blue-500 hover:text-blue-600 transition-colors flex-shrink-0">
+                  <button
+                    onClick={() => toggleItem(slot.timeSlot, item.id)}
+                    className="text-blue-500 hover:text-blue-600 transition-colors flex-shrink-0"
+                    aria-label={item.completed ? `Mark ${item.text} as incomplete` : `Mark ${item.text} as complete`}
+                  >
                     {item.completed ? <CheckCircle size={24} className="text-green-500" /> : <Circle size={24} className="text-gray-300 dark:text-gray-500" />}
                   </button>
                   <span className={`flex-1 text-sm truncate ${item.completed ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-800 dark:text-gray-200'} font-medium`}>
@@ -67,7 +71,7 @@ export default function BedroomTracker({ date }) {
                   <button
                     onClick={() => removeItem(slot.timeSlot, item.id)}
                     className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0 p-1"
-                    title="Delete task"
+                    aria-label={`Remove ${item.text}`}
                   >
                     <Trash2 size={18} />
                   </button>
