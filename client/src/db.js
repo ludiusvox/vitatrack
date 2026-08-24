@@ -15,11 +15,12 @@ export const getDB = async () => {
       bedroom: Array.isArray(data?.bedroom) ? data.bedroom : [],
       autoHabits: Array.isArray(data?.autoHabits) ? data.autoHabits : [],
       laundryData: typeof data?.laundryData === 'object' && data.laundryData !== null ? data.laundryData : {},
-      chores: Array.isArray(data?.chores) ? data.chores : []
+      chores: Array.isArray(data?.chores) ? data.chores : [],
+      mentalHealth: Array.isArray(data?.mentalHealth) ? data.mentalHealth : []
     };
   } catch (e) {
     console.error('Failed to load IndexedDB:', e);
-    return { hygiene: [], medications: [], prescriptions: [], logs: [], bedroom: [], autoHabits: [], laundryData: {}, chores: [] };
+    return { hygiene: [], medications: [], prescriptions: [], logs: [], bedroom: [], autoHabits: [], laundryData: {}, chores: [], mentalHealth: [] };
   }
 };
 
@@ -418,4 +419,42 @@ export const getNextDueDate = (currentDateStr, recurrence) => {
   else if (recurrence === 'monthly') d.setMonth(d.getMonth() + 1);
   
   return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+};
+
+// Mental Health Tracking
+export const getMentalHealthByDate = async (date) => {
+  const db = await getDB();
+  return (db.mentalHealth || []).find(m => m.date === date) || { date, checks: {} };
+};
+
+export const saveMentalHealthCheck = async (date, timeOfDay, mood, brain) => {
+  try {
+    const db = await getDB();
+    if (!Array.isArray(db.mentalHealth)) db.mentalHealth = [];
+    let idx = db.mentalHealth.findIndex(m => m.date === date);
+    if (idx < 0) {
+      db.mentalHealth.push({ date, checks: {} });
+      idx = db.mentalHealth.length - 1;
+    }
+    db.mentalHealth[idx].checks[timeOfDay] = { mood, brain };
+    await saveDB(db);
+  } catch (e) {
+    console.error('Failed to save mental health check:', e);
+  }
+};
+
+export const getWeeklyMentalHealth = async (endDate) => {
+  const db = await getDB();
+  const end = new Date(endDate + 'T12:00:00');
+  const weekDates = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(end);
+    d.setDate(d.getDate() - i);
+    weekDates.push(new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(d));
+  }
+
+  return weekDates.map(date => {
+    const entry = (db.mentalHealth || []).find(m => m.date === date);
+    return entry || { date, checks: {} };
+  });
 };

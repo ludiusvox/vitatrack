@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Calendar, PanelLeftClose, PanelLeftOpen, X, Home, Car, Shirt, ListTodo, Pill, LayoutGrid, Waves, CheckSquare, BarChart2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, PanelLeftClose, PanelLeftOpen, X, Home, Car, Shirt, ListTodo, Pill, LayoutGrid, Waves, CheckSquare, BarChart2, Brain } from 'lucide-react';
 
 const COMMON_TIMEZONES = [
   'UTC',
@@ -72,6 +72,7 @@ export default function Sidebar({ selectedDate, setSelectedDate, isCollapsed, se
 
   const navItems = [
     { id: 'tracker', label: 'Overview', icon: LayoutGrid },
+    { id: 'mental', label: 'Mental', icon: Brain },
     { id: 'medications', label: 'Meds & Vits', icon: Pill },
     { id: 'bedroom', label: 'Bedroom', icon: Shirt },
     { id: 'auto', label: 'Auto', icon: Car },

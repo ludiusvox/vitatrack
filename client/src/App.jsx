@@ -7,6 +7,7 @@ import AutoTracker from './components/AutoTracker';
 import LaundryCountdown from './components/LaundryCountdown';
 import ChoreChecklist from './components/ChoreChecklist';
 import MedicationManager from './components/MedicationManager';
+import MentalHealth from './components/MentalHealth';
 import { Moon, Sun, PanelLeftOpen, PanelLeftClose } from 'lucide-react';
 
 export default function App() {
@@ -69,6 +70,7 @@ export default function App() {
   const renderContent = () => {
     switch (activeView) {
       case 'bedroom': return <BedroomTracker date={selectedDate} />;
+      case 'mental': return <MentalHealth date={selectedDate} />;
       case 'auto': return <AutoTracker />;
       case 'laundry': return <LaundryCountdown />;
       case 'chores': return <ChoreChecklist date={selectedDate} />;
